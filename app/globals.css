@@ -1,26 +1,48 @@
 @import "tailwindcss";
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
+:root { 
+    
+    /* == Static Light Theme Variables == */
+    --accent-color-light: #0969DA;
+    --surface-color-light: rgba(246, 248, 250, 0.85);
+    --font-color-light: #08346b;
+    --background-color-light: #FFFFFF;
+    --icon-filter-light: none;
+    --terminal-output-color-light: #8C4B3E;
+    
+    /* == Static Dark Theme Variables == */
+    --accent-color-dark: #58A6FF;
+    --surface-color-dark: rgba(22, 27, 34, 0.85);
+    --font-color-dark: #E6EDF3;
+    --background-color-dark: #0c0e12;
+    --icon-filter-dark: invert(1);
+    --terminal-output-color-dark: #ce8264;
+
+
+    --surface-color: var(--surface-color-light);
+    --font-color: var(--font-color-light);
+    --background-color: var(--background-color-light);
+    --icon-filter: var(--icon-filter-light);
+    --accent-color: var(--accent-color-light);
+    --terminal-output-color: var(--terminal-output-color-light);
+    --wallpaper: var(--wallpaper-light);
+
+    --current-surface: var(--surface-color-light);
+    --current-font-color: var(--font-color-light);
 }
 
-@theme inline {
+:root {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
-}
 
 body {
-  background: var(--background);
-  color: var(--foreground);
+  background: var(--background-color);
+  color: var(--font-color);
   font-family: Arial, Helvetica, sans-serif;
+  
+  transition: background-color 0.3s ease, color 0.3s ease;
 }
