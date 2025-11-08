@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { useRouter } from 'next/navigation';
 import { User, Activity, Target, Heart, Loader2 } from 'lucide-react';
 import { UserProfileData } from '@/app/types';
 
@@ -11,10 +12,10 @@ export default function UserProfileForm() {
     gender: 'male',
     height: '',
     weight: '',
-    fitnessGoal: 'weight_loss',
+    fitnessGoal: 'maintenance',
     fitnessLevel: 'beginner',
     workoutLocation: 'gym',
-    dietaryPreference: 'non_veg',
+    dietaryPreference: 'veg',
     medicalHistory: '',
     stressLevel: 'medium',
   });
@@ -22,6 +23,7 @@ export default function UserProfileForm() {
   const [currentStep, setCurrentStep] = useState(0);
   const [isLoading, setIsLoading] = useState(false); 
   const [error, setError] = useState<string | null>(null);
+  const router = useRouter();
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
@@ -50,7 +52,12 @@ export default function UserProfileForm() {
       }
 
       const result = await response.json();
-      console.log('API Response:', result);
+
+      if (result.planId) {
+        router.push(`/p/${result.planId}`);
+      } else {
+        throw new Error('API did not return a planId.');
+      }
       
     } catch (err) {
       if (err instanceof Error) {

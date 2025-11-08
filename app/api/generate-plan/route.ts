@@ -4,20 +4,7 @@ import { generateObject } from 'ai';
 import { z } from 'zod';
 import { supabaseServer } from '@/lib/supabaseServer';
 import { nanoid } from 'nanoid';
-
-type UserProfileData = {
-  name: string;
-  age: string;
-  gender: string;
-  height: string;
-  weight: string;
-  fitnessGoal: string;
-  fitnessLevel: string;
-  workoutLocation: string;
-  dietaryPreference: string;
-  medicalHistory: string;
-  stressLevel: string;
-};
+import { UserProfileData } from '@/app/types';
 
 const groq = createOpenAI({
   baseURL: 'https://api.groq.com/openai/v1',
