@@ -1,12 +1,13 @@
 'use client';
 
 import { useState, useRef } from 'react';
-import { Loader2, Utensils, Dumbbell, Sparkles, Lightbulb, X, ChevronRight, Download, Play, StopCircle } from 'lucide-react';
-import { Plan } from '@/app/types';
+import { useRouter } from 'next/navigation';
+import { Loader2, Utensils, Dumbbell, Lightbulb, X, ChevronRight, Download, Play, StopCircle, RefreshCcw } from 'lucide-react';
+import { Plan, UserProfileData } from '@/app/types';
 
 type ActiveTab = 'workout' | 'diet' | 'tips';
 
-export default function PlanDisplay({ plan }: { plan: Plan }) {
+export default function PlanDisplay({ plan, userInputs }: { plan: Plan, userInputs: UserProfileData }) {
   const [activeTab, setActiveTab] = useState<ActiveTab>('workout');
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
   const [isLoadingImage, setIsLoadingImage] = useState(false);
@@ -14,6 +15,9 @@ export default function PlanDisplay({ plan }: { plan: Plan }) {
   const componentRef = useRef<HTMLDivElement>(null);
   const [audio, setAudio] = useState<HTMLAudioElement | null>(null);
   const [speakingItem, setSpeakingItem] = useState<string | null>(null);
+  const [isRegenerating, setIsRegenerating] = useState(false);
+  const router = useRouter(); 
+
   const handlePrint = () => {
     const printContents = componentRef.current?.innerHTML;
     if (!printContents) return;
@@ -100,6 +104,35 @@ export default function PlanDisplay({ plan }: { plan: Plan }) {
       printWindow.print();
       printWindow.close();
     }, 250);
+  };
+
+  const handleRegenerate = async () => {
+    setIsRegenerating(true);
+    try {
+      const response = await fetch('/api/generate-plan', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(userInputs), 
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to regenerate plan.');
+      }
+
+      const result = await response.json();
+      
+      if (result.planId) {
+        router.push(`/p/${result.planId}`);
+      } else {
+        throw new Error('No planId returned from API.');
+      }
+
+    } catch (err) {
+      console.error(err);
+      setIsRegenerating(false);
+    }
   };
 
   const generateImage = async (prompt: string, type: 'exercise' | 'food') => {
@@ -241,6 +274,20 @@ export default function PlanDisplay({ plan }: { plan: Plan }) {
         >
           <Download size={18} />
           <span className="text-sm md:text-base">Export PDF</span>
+        </button>
+        <button
+          onClick={handleRegenerate}
+          disabled={isRegenerating}
+          className="flex items-center gap-2 px-4 py-2 rounded-lg font-medium transition-all bg-blue-600 text-white hover:bg-blue-700 shadow-md active:scale-95 disabled:opacity-50 disabled:cursor-wait"
+        >
+          {isRegenerating ? (
+            <Loader2 size={18} className="animate-spin" />
+          ) : (
+            <RefreshCcw size={18} />
+          )}
+          <span className="text-sm md:text-base">
+            {isRegenerating ? 'Regenerating...' : 'Regenerate'}
+          </span>
         </button>
       </div>
 

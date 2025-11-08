@@ -4,14 +4,14 @@ import PlanDisplay from '@/app/components/PlanDisplay';
 import QrCodeShare from '@/app/components/QrCodeShare';
 import { notFound } from 'next/navigation';
 import Link from 'next/link';
-import { Plan } from '@/app/types';
+import { Plan, UserProfileData  } from '@/app/types';
 import DailyQuote from '@/app/components/DailyQuote';
 import { Metadata } from 'next';
 
-async function getPlan(planId: string): Promise<Plan | null> {
+async function getPlan(planId: string): Promise<{ plan: Plan, userInputs: UserProfileData } | null> {
   const { data, error } = await supabaseServer
     .from('plans')
-    .select('generated_plan')
+    .select('generated_plan, user_inputs')
     .eq('id', planId)
     .single();
 
@@ -20,24 +20,27 @@ async function getPlan(planId: string): Promise<Plan | null> {
     return null;
   }
 
-  return data.generated_plan as Plan;
+  return {
+    plan: data.generated_plan as Plan,
+    userInputs: data.user_inputs as UserProfileData
+  };
 }
 
 export async function generateMetadata(
   { params }: { params: Promise<{ planId: string }> }
 ): Promise<Metadata> {
   const { planId } = await params;
-  const plan = await getPlan(planId);
+  const planData = await getPlan(planId);
 
-  if (!plan) {
+  if (!planData) {
     return {
       title: "Plan Not Found",
       description: "This fitness plan could not be found.",
     };
   }
 
-  const planTitle = `Your 7-Day ${plan.workoutPlan[0].dayTitle || 'Fitness Plan'}`;
-  const planDescription = `View your personalized AI-generated workout and diet plan. Includes ${plan.tips.length} lifestyle tips and daily motivation.`;
+  const planTitle = `Your 7-Day ${planData.plan.workoutPlan[0].dayTitle || 'Fitness Plan'}`;
+  const planDescription = `View your personalized AI-generated workout and diet plan. Includes ${planData.plan.tips.length} lifestyle tips and daily motivation.`;
 
   return {
     title: planTitle,
@@ -49,8 +52,8 @@ export default async function PlanPage({ params }: { params: Promise<{ planId: s
   
   const { planId } = await params; 
   
-  const plan = await getPlan(planId); 
-  if (!plan) {
+  const planData = await getPlan(planId); 
+  if (!planData) {
     notFound();
   }
 
@@ -72,7 +75,7 @@ export default async function PlanPage({ params }: { params: Promise<{ planId: s
       <div className="max-w-4xl mx-auto mt-16 md:mt-24 px-4 pb-8">
         <DailyQuote />
 
-      <PlanDisplay plan={plan} />
+      <PlanDisplay plan={planData.plan} userInputs={planData.userInputs} />
       </div>
     </main>
   );

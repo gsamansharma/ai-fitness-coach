@@ -10,3 +10,17 @@ export type Plan = {
   }[];
   tips: string[];
 };
+
+export type UserProfileData = {
+  name: string;
+  age: string;
+  gender: string;
+  height: string;
+  weight: string;
+  fitnessGoal: string;
+  fitnessLevel: string;
+  workoutLocation: string;
+  dietaryPreference: string;
+  medicalHistory: string;
+  stressLevel: string;
+};

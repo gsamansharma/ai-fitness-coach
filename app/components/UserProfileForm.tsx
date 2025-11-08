@@ -1,21 +1,8 @@
 'use client';
 
 import { useState } from 'react';
-import { User, Activity, Target, MapPin, Utensils, Heart, Loader2 } from 'lucide-react';
-
-export type UserProfileData = {
-  name: string;
-  age: string;
-  gender: string;
-  height: string;
-  weight: string;
-  fitnessGoal: string;
-  fitnessLevel: string;
-  workoutLocation: string;
-  dietaryPreference: string;
-  medicalHistory: string;
-  stressLevel: string;
-};
+import { User, Activity, Target, Heart, Loader2 } from 'lucide-react';
+import { UserProfileData } from '@/app/types';
 
 export default function UserProfileForm() {
   const [formData, setFormData] = useState<UserProfileData>({
