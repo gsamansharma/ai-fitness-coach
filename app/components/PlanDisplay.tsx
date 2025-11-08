@@ -1,7 +1,7 @@
 'use client';
 
-import { useState } from 'react';
-import { Loader2, Utensils, Dumbbell, Sparkles, Lightbulb, X, ChevronRight } from 'lucide-react';
+import { useState, useRef } from 'react';
+import { Loader2, Utensils, Dumbbell, Sparkles, Lightbulb, X, ChevronRight, Download } from 'lucide-react';
 import { Plan } from '@/app/types';
 
 type ActiveTab = 'workout' | 'diet' | 'tips';
@@ -11,7 +11,95 @@ export default function PlanDisplay({ plan }: { plan: Plan }) {
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
   const [isLoadingImage, setIsLoadingImage] = useState(false);
   const [expandedDay, setExpandedDay] = useState<number | null>(1);
-  const [hoveredItem, setHoveredItem] = useState<string | null>(null);
+  const componentRef = useRef<HTMLDivElement>(null);
+
+  const handlePrint = () => {
+    const printContents = componentRef.current?.innerHTML;
+    if (!printContents) return;
+
+    const printWindow = window.open('', '_blank');
+    if (!printWindow) return;
+
+    printWindow.document.write(`
+      <!DOCTYPE html>
+      <html>
+        <head>
+          <title>Your Personalized Fitness Plan</title>
+          <style>
+            body {
+              font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+              padding: 40px;
+              max-width: 800px;
+              margin: 0 auto;
+              color: #333;
+            }
+            h1 {
+              color: #6366f1;
+              text-align: center;
+              margin-bottom: 30px;
+            }
+            h2 {
+              color: #6366f1;
+              margin-top: 30px;
+              margin-bottom: 15px;
+              border-bottom: 2px solid #6366f1;
+              padding-bottom: 5px;
+            }
+            h3 {
+              color: #333;
+              margin-top: 20px;
+              margin-bottom: 10px;
+            }
+            .day-section {
+              margin-bottom: 25px;
+              break-inside: avoid;
+            }
+            .exercise-item, .meal-item {
+              padding: 8px 0;
+              border-bottom: 1px solid #eee;
+            }
+            .exercise-details {
+              color: #666;
+              font-size: 0.9em;
+            }
+            .meal-type {
+              font-weight: bold;
+              color: #6366f1;
+              text-transform: uppercase;
+              font-size: 0.85em;
+            }
+            .tips-list {
+              list-style: disc;
+              padding-left: 20px;
+            }
+            .tips-list li {
+              margin-bottom: 8px;
+            }
+            .motivation {
+              font-style: italic;
+              border-left: 3px solid #6366f1;
+              padding-left: 15px;
+              margin-top: 15px;
+              color: #555;
+            }
+            @media print {
+              body { padding: 20px; }
+            }
+          </style>
+        </head>
+        <body>
+          ${printContents}
+        </body>
+      </html>
+    `);
+    
+    printWindow.document.close();
+    printWindow.focus();
+    setTimeout(() => {
+      printWindow.print();
+      printWindow.close();
+    }, 250);
+  };
 
   const generateImage = async (prompt: string, type: 'exercise' | 'food') => {
     setIsLoadingImage(true);
@@ -76,10 +164,68 @@ export default function PlanDisplay({ plan }: { plan: Plan }) {
       </div>
 
       {/* Tab Navigation */}
-      <div className="flex justify-center gap-2 mb-6 md:mb-10">
-        <TabButton tabName="workout" icon={Dumbbell} label="Workout" />
-        <TabButton tabName="diet" icon={Utensils} label="Diet" />
-        <TabButton tabName="tips" icon={Lightbulb} label="Tips" />
+      <div className="flex flex-col sm:flex-row justify-center items-center gap-3 mb-6 md:mb-10">
+        <div className="flex gap-2">
+          <TabButton tabName="workout" icon={Dumbbell} label="Workout" />
+          <TabButton tabName="diet" icon={Utensils} label="Diet" />
+          <TabButton tabName="tips" icon={Lightbulb} label="Tips" />
+        </div>
+        <button
+          onClick={handlePrint}
+          className="flex items-center gap-2 px-4 py-2 rounded-lg font-medium transition-all bg-green-600 text-white hover:bg-green-700 shadow-md active:scale-95"
+        >
+          <Download size={18} />
+          <span className="text-sm md:text-base">Export PDF</span>
+        </button>
+      </div>
+
+      {/* Hidden printable content */}
+      <div className="hidden">
+        <div ref={componentRef}>
+          <h1>Your Personalized Fitness Plan</h1>
+          
+          <h2>Workout Plan</h2>
+          {plan.workoutPlan.map((day) => (
+            <div key={day.day} className="day-section">
+              <h3>Day {day.day}: {day.dayTitle}</h3>
+              {day.exercises.length === 0 || day.dayTitle.toLowerCase().includes('rest') ? (
+                <p>Rest & Recovery</p>
+              ) : (
+                day.exercises.map((ex, i) => (
+                  <div key={i} className="exercise-item">
+                    <div>{ex.name}</div>
+                    <div className="exercise-details">
+                      {ex.sets && `${ex.sets} sets`} {ex.reps && `× ${ex.reps}`} {ex.duration && ex.duration}
+                    </div>
+                  </div>
+                ))
+              )}
+            </div>
+          ))}
+          
+          <h2>Diet Plan</h2>
+          {plan.dietPlan.map((day) => (
+            <div key={day.day} className="day-section">
+              <h3>Day {day.day}</h3>
+              {Object.entries(day.meals).map(([mealType, meal]) => (
+                <div key={mealType} className="meal-item">
+                  <div className="meal-type">{mealType}</div>
+                  <div>{meal}</div>
+                </div>
+              ))}
+            </div>
+          ))}
+          
+          <h2>Lifestyle Tips</h2>
+          <ul className="tips-list">
+            {plan.tips.map((tip, i) => (
+              <li key={i}>{tip}</li>
+            ))}
+          </ul>
+          
+          <h2>Motivation</h2>
+          <div className="motivation">{plan.motivation}</div>
+        </div>
       </div>
 
       {/* Content Area */}
