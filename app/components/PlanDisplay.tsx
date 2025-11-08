@@ -447,7 +447,7 @@ export default function PlanDisplay({ plan }: { plan: Plan }) {
           </div>
         )}
 
-        {/* TIPS & MOTIVATION */}
+        {/* TIPS */}
         {activeTab === 'tips' && (
           <div className="space-y-4">
             <div className="bg-(--surface-color) p-5 md:p-6 rounded-lg shadow-md">
@@ -473,30 +473,6 @@ export default function PlanDisplay({ plan }: { plan: Plan }) {
               <ul className="list-disc list-inside space-y-2 text-(--font-color)/90">
                 {plan.tips.map((tip, i) => <li key={i}>{tip}</li>)}
               </ul>
-            </div>
-            <div className="bg-(--surface-color) p-5 md:p-6 rounded-lg shadow-md">
-              <div className="flex items-center justify-between mb-4">
-                <div className="flex items-center gap-2">
-                  <Sparkles className="text-(--accent-color)" size={20} />
-                  <h3 className="text-lg md:text-xl font-semibold text-(--font-color)">
-                    Motivation
-                  </h3>
-                </div>
-                {/* 5. ADDED Per-Section Play Button */}
-                <button
-                  onClick={() => playAudio(plan.motivation, 'motivation')}
-                  className="p-2 rounded-full hover:bg-(--background-color)"
-                >
-                  {speakingItem === 'motivation' ? (
-                    <StopCircle className="text-red-500" size={20} />
-                  ) : (
-                    <Play className="text-(--accent-color)" size={20} />
-                  )}
-                </button>
-              </div>
-              <blockquote className="text-base md:text-lg italic text-(--font-color)/90 border-l-4 border-(--accent-color) pl-4">
-                "{plan.motivation}"
-              </blockquote>
             </div>
           </div>
         )}
