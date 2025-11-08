@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { User, Activity, Target, MapPin, Utensils, Heart } from 'lucide-react';
+import { User, Activity, Target, MapPin, Utensils, Heart, Loader2 } from 'lucide-react';
 
 export type UserProfileData = {
   name: string;
@@ -33,6 +33,8 @@ export default function UserProfileForm() {
   });
 
   const [currentStep, setCurrentStep] = useState(0);
+  const [isLoading, setIsLoading] = useState(false); 
+  const [error, setError] = useState<string | null>(null);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
@@ -42,9 +44,37 @@ export default function UserProfileForm() {
     }));
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    console.log('Form Submitted:', formData);
+    setIsLoading(true); 
+    setError(null);      
+
+    try {
+      const response = await fetch('/api/generate-plan', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(formData),
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to generate plan. Please try again.');
+      }
+
+      const result = await response.json();
+      console.log('API Response:', result);
+      
+    } catch (err) {
+      if (err instanceof Error) {
+        setError(err.message);
+      } else {
+        setError('An unknown error occurred.');
+      }
+      console.error(err);
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   const steps = [
@@ -387,30 +417,25 @@ export default function UserProfileForm() {
               <button
                 type="button"
                 onClick={handleSubmit}
-                className="flex-1 px-6 py-3 rounded-lg bg-(--accent-color) text-(--background-color) font-medium hover:opacity-90 transition-all shadow-lg"
+                disabled={isLoading}
+                className="flex-1 px-6 py-3 rounded-lg bg-(--accent-color) text-(--background-color) font-medium hover:opacity-90 transition-all shadow-lg
+                disabled:opacity-50 disabled:cursor-not-allowed
+                           flex items-center justify-center gap-2"
               >
-                Generate My Plan
+                {isLoading ? (
+                  <>
+                    <Loader2 className="h-5 w-5 animate-spin" />
+                    Generating...
+                  </>
+                ) : (
+                  'Generate My Plan'
+                )}
               </button>
             )}
           </div>
         </div>
       </div>
 
-      <style jsx>{`
-        @keyframes fade-in {
-          from {
-            opacity: 0;
-            transform: translateY(10px);
-          }
-          to {
-            opacity: 1;
-            transform: translateY(0);
-          }
-        }
-        .animate-fade-in {
-          animation: fade-in 0.4s ease-out;
-        }
-      `}</style>
     </div>
   );
 }

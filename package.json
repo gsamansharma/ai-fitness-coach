@@ -9,12 +9,15 @@
     "lint": "eslint"
   },
   "dependencies": {
+    "@ai-sdk/openai": "^2.0.64",
     "@supabase/supabase-js": "^2.80.0",
+    "ai": "^5.0.89",
     "lucide-react": "^0.553.0",
     "nanoid": "^5.1.6",
     "next": "16.0.1",
     "react": "19.2.0",
-    "react-dom": "19.2.0"
+    "react-dom": "19.2.0",
+    "zod": "^4.1.12"
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4",
