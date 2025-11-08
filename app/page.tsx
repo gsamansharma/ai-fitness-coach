@@ -1,5 +1,11 @@
 import UserProfileForm from './components/UserProfileForm'
 import ThemeToggle from './components/ThemeToggle'
+import { Metadata } from 'next';
+
+export const metadata: Metadata = {
+  title: "Create Your Plan",
+  description: "Answer a few questions to generate your completely custom AI-powered fitness and nutrition plan.",
+};
 
 export default function Home() {
   return (

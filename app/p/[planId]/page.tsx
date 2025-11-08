@@ -6,6 +6,7 @@ import { notFound } from 'next/navigation';
 import Link from 'next/link';
 import { Plan } from '@/app/types';
 import DailyQuote from '@/app/components/DailyQuote';
+import { Metadata } from 'next';
 
 async function getPlan(planId: string): Promise<Plan | null> {
   const { data, error } = await supabaseServer
@@ -20,6 +21,28 @@ async function getPlan(planId: string): Promise<Plan | null> {
   }
 
   return data.generated_plan as Plan;
+}
+
+export async function generateMetadata(
+  { params }: { params: Promise<{ planId: string }> }
+): Promise<Metadata> {
+  const { planId } = await params;
+  const plan = await getPlan(planId);
+
+  if (!plan) {
+    return {
+      title: "Plan Not Found",
+      description: "This fitness plan could not be found.",
+    };
+  }
+
+  const planTitle = `Your 7-Day ${plan.workoutPlan[0].dayTitle || 'Fitness Plan'}`;
+  const planDescription = `View your personalized AI-generated workout and diet plan. Includes ${plan.tips.length} lifestyle tips and daily motivation.`;
+
+  return {
+    title: planTitle,
+    description: planDescription,
+  };
 }
 
 export default async function PlanPage({ params }: { params: Promise<{ planId: string }> }) { 
