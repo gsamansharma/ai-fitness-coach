@@ -12,6 +12,7 @@
     "@ai-sdk/openai": "^2.0.64",
     "@supabase/supabase-js": "^2.80.0",
     "ai": "^5.0.89",
+    "groq-sdk": "^0.34.0",
     "lucide-react": "^0.553.0",
     "nanoid": "^5.1.6",
     "next": "16.0.1",

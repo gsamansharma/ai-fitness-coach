@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useRef } from 'react';
-import { Loader2, Utensils, Dumbbell, Sparkles, Lightbulb, X, ChevronRight, Download } from 'lucide-react';
+import { Loader2, Utensils, Dumbbell, Sparkles, Lightbulb, X, ChevronRight, Download, Play, StopCircle } from 'lucide-react';
 import { Plan } from '@/app/types';
 
 type ActiveTab = 'workout' | 'diet' | 'tips';
@@ -12,7 +12,8 @@ export default function PlanDisplay({ plan }: { plan: Plan }) {
   const [isLoadingImage, setIsLoadingImage] = useState(false);
   const [expandedDay, setExpandedDay] = useState<number | null>(1);
   const componentRef = useRef<HTMLDivElement>(null);
-
+  const [audio, setAudio] = useState<HTMLAudioElement | null>(null);
+  const [speakingItem, setSpeakingItem] = useState<string | null>(null);
   const handlePrint = () => {
     const printContents = componentRef.current?.innerHTML;
     if (!printContents) return;
@@ -124,6 +125,69 @@ export default function PlanDisplay({ plan }: { plan: Plan }) {
     }
   };
 
+  const playAudio = async (textToSpeak: string, itemKey: string) => {
+    if (audio && speakingItem === itemKey) {
+      stopAudio();
+      return;
+    }
+
+    if (audio) {
+      audio.pause();
+    }
+    
+    setSpeakingItem(itemKey);
+
+    try {
+      const response = await fetch('/api/generate-voice', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ text: textToSpeak }),
+      });
+
+      if (!response.ok) throw new Error('Failed to generate audio');
+
+      const blob = await response.blob();
+      const url = URL.createObjectURL(blob);
+      const newAudio = new Audio(url);
+      setAudio(newAudio);
+      newAudio.play();
+      
+      newAudio.onended = () => {
+        setSpeakingItem(null);
+      };
+
+    } catch (err) {
+      console.error(err);
+      setSpeakingItem(null);
+    }
+  };
+
+  const stopAudio = () => {
+    if (audio) {
+      audio.pause();
+    }
+    setSpeakingItem(null);
+  };
+
+  const getWorkoutDayText = (day: Plan['workoutPlan'][0]) => {
+    if (day.exercises.length === 0 || day.dayTitle.toLowerCase().includes('rest')) {
+      return `Day ${day.day}: ${day.dayTitle}. Rest and recover.`;
+    }
+    const exercisesText = day.exercises.map(ex => 
+      `${ex.name}: ${ex.sets ? `${ex.sets} sets` : ''} ${ex.reps ? `by ${ex.reps}` : ''} ${ex.duration ? `${ex.duration}` : ''}.`
+    ).join(' ');
+    return `Day ${day.day}: ${day.dayTitle}. ${exercisesText}`;
+  };
+
+  const getDietDayText = (day: Plan['dietPlan'][0]) => {
+    return `Day ${day.day} Meals. 
+      Breakfast: ${day.meals.breakfast}.
+      Lunch: ${day.meals.lunch}.
+      Dinner: ${day.meals.dinner}.
+      Snacks: ${day.meals.snacks}.
+    `;
+  };
+
   const TabButton = ({
     tabName,
     icon: Icon,
@@ -137,6 +201,7 @@ export default function PlanDisplay({ plan }: { plan: Plan }) {
       onClick={() => {
         setActiveTab(tabName);
         setExpandedDay(1);
+        stopAudio();
       }}
       className={`
         flex items-center gap-1.5 px-3 md:px-4 py-2 md:py-2.5 rounded-lg font-medium transition-all duration-200
@@ -233,35 +298,47 @@ export default function PlanDisplay({ plan }: { plan: Plan }) {
         {/* WORKOUT PLAN */}
         {activeTab === 'workout' && (
           <div className="space-y-3">
-            {plan.workoutPlan.map((day) => (
-              <div 
-                key={day.day} 
-                className="bg-(--surface-color) rounded-lg shadow-md overflow-hidden"
-              >
-                <button
-                  onClick={() => setExpandedDay(expandedDay === day.day ? null : day.day)}
-                  className="w-full p-4 flex items-center justify-between"
-                >
-                  <div className="flex items-center gap-3">
-                    <div className="flex items-center justify-center w-8 h-8 md:w-10 md:h-10 rounded-full bg-(--accent-color) text-white text-sm md:text-base font-semibold">
-                      {day.day}
-                    </div>
-                    <div className="text-left">
-                      <h4 className="text-base md:text-lg font-semibold text-(--font-color)">
-                        {day.dayTitle}
-                      </h4>
-                      <p className="text-xs md:text-sm text-(--font-color)/50">
-                        {day.exercises.length} {day.exercises.length === 1 ? 'exercise' : 'exercises'}
-                      </p>
+            {plan.workoutPlan.map((day) => {
+              const itemKey = `workout-${day.day}`;
+              const isThisSpeaking = speakingItem === itemKey;
+              return (
+                <div key={day.day} className="bg-(--surface-color) rounded-lg shadow-md overflow-hidden">
+                  <div className="w-full p-4 flex items-center justify-between">
+                    <button
+                      onClick={() => setExpandedDay(expandedDay === day.day ? null : day.day)}
+                      className="flex items-center gap-3"
+                    >
+                      <div className="shrink-0 flex items-center justify-center w-8 h-8 md:w-10 md:h-10 rounded-full bg-(--accent-color) text-white text-sm md:text-base font-semibold">
+                        {day.day}
+                      </div>
+                      <div className="text-left">
+                        <h4 className="text-base md:text-lg font-semibold text-(--font-color)">
+                          {day.dayTitle}
+                        </h4>
+                      </div>
+                    </button>
+                    <div className="flex items-center gap-2">
+                      {/* 5. ADDED Per-Day Play Button */}
+                      <button
+                        onClick={() => playAudio(getWorkoutDayText(day), itemKey)}
+                        className="p-2 rounded-full hover:bg-(--background-color)"
+                      >
+                        {isThisSpeaking ? (
+                          <StopCircle className="text-red-500" size={20} />
+                        ) : (
+                          <Play className="text-(--accent-color)" size={20} />
+                        )}
+                      </button>
+                      <button onClick={() => setExpandedDay(expandedDay === day.day ? null : day.day)}>
+                        <ChevronRight 
+                          className={`text-(--font-color)/40 transition-transform ${
+                            expandedDay === day.day ? 'rotate-90' : ''
+                          }`} 
+                          size={20} 
+                        />
+                      </button>
                     </div>
                   </div>
-                  <ChevronRight 
-                    className={`text-(--font-color)/40 transition-transform ${
-                      expandedDay === day.day ? 'rotate-90' : ''
-                    }`} 
-                    size={20} 
-                  />
-                </button>
                 
                 {expandedDay === day.day && (
                   <div className="px-4 pb-4 animate-expand">
@@ -294,42 +371,53 @@ export default function PlanDisplay({ plan }: { plan: Plan }) {
                   </div>
                 )}
               </div>
-            ))}
+              );
+            })}
           </div>
         )}
 
         {/* DIET PLAN */}
         {activeTab === 'diet' && (
           <div className="space-y-3">
-            {plan.dietPlan.map((day) => (
-              <div 
-                key={day.day} 
-                className="bg-(--surface-color) rounded-lg shadow-md overflow-hidden"
-              >
-                <button
-                  onClick={() => setExpandedDay(expandedDay === day.day ? null : day.day)}
-                  className="w-full p-4 flex items-center justify-between"
-                >
-                  <div className="flex items-center gap-3">
-                    <div className="flex items-center justify-center w-8 h-8 md:w-10 md:h-10 rounded-full bg-(--accent-color) text-white text-sm md:text-base font-semibold">
-                      {day.day}
-                    </div>
-                    <div className="text-left">
+            {plan.dietPlan.map((day) => {
+              const itemKey = `diet-${day.day}`;
+              const isThisSpeaking = speakingItem === itemKey;
+              return (
+                <div key={day.day} className="bg-(--surface-color) rounded-lg shadow-md overflow-hidden">
+                  <div className="w-full p-4 flex items-center justify-between">
+                    <button
+                      onClick={() => setExpandedDay(expandedDay === day.day ? null : day.day)}
+                      className="flex items-center gap-3"
+                    >
+                      <div className="shrink-0 flex items-center justify-center w-8 h-8 md:w-10 md:h-10 rounded-full bg-(--accent-color) text-white text-sm md:text-base font-semibold">
+                        {day.day}
+                      </div>
                       <h4 className="text-base md:text-lg font-semibold text-(--font-color)">
                         Day {day.day} Meals
                       </h4>
-                      <p className="text-xs md:text-sm text-(--font-color)/50">
-                        4 meals
-                      </p>
+                    </button>
+                    <div className="flex items-center gap-2">
+                      {/* 5. ADDED Per-Day Play Button */}
+                      <button
+                        onClick={() => playAudio(getDietDayText(day), itemKey)}
+                        className="p-2 rounded-full hover:bg-(--background-color)"
+                      >
+                        {isThisSpeaking ? (
+                          <StopCircle className="text-red-500" size={20} />
+                        ) : (
+                          <Play className="text-(--accent-color)" size={20} />
+                        )}
+                      </button>
+                      <button onClick={() => setExpandedDay(expandedDay === day.day ? null : day.day)}>
+                        <ChevronRight 
+                          className={`text-(--font-color)/40 transition-transform ${
+                            expandedDay === day.day ? 'rotate-90' : ''
+                          }`} 
+                          size={20} 
+                        />
+                      </button>
                     </div>
                   </div>
-                  <ChevronRight 
-                    className={`text-(--font-color)/40 transition-transform ${
-                      expandedDay === day.day ? 'rotate-90' : ''
-                    }`} 
-                    size={20} 
-                  />
-                </button>
                 
                 {expandedDay === day.day && (
                   <div className="px-4 pb-4 animate-expand">
@@ -354,7 +442,8 @@ export default function PlanDisplay({ plan }: { plan: Plan }) {
                   </div>
                 )}
               </div>
-            ))}
+              );
+            })}
           </div>
         )}
 
@@ -362,32 +451,52 @@ export default function PlanDisplay({ plan }: { plan: Plan }) {
         {activeTab === 'tips' && (
           <div className="space-y-4">
             <div className="bg-(--surface-color) p-5 md:p-6 rounded-lg shadow-md">
-              <div className="flex items-center gap-2 mb-4">
-                <Lightbulb className="text-(--accent-color)" size={20} />
-                <h3 className="text-lg md:text-xl font-semibold text-(--font-color)">
-                  Lifestyle Tips
-                </h3>
+              <div className="flex items-center justify-between mb-4">
+                <div className="flex items-center gap-2">
+                  <Lightbulb className="text-(--accent-color)" size={20} />
+                  <h3 className="text-lg md:text-xl font-semibold text-(--font-color)">
+                    Lifestyle Tips
+                  </h3>
+                </div>
+                {/* 5. ADDED Per-Section Play Button */}
+                <button
+                  onClick={() => playAudio(plan.tips.join('... '), 'tips')}
+                  className="p-2 rounded-full hover:bg-(--background-color)"
+                >
+                  {speakingItem === 'tips' ? (
+                    <StopCircle className="text-red-500" size={20} />
+                  ) : (
+                    <Play className="text-(--accent-color)" size={20} />
+                  )}
+                </button>
               </div>
-              <ul className="space-y-2">
-                {plan.tips.map((tip, i) => (
-                  <li key={i} className="flex items-start gap-2 text-sm md:text-base text-(--font-color)/80">
-                    <span className="text-(--accent-color) mt-1">•</span>
-                    <span>{tip}</span>
-                  </li>
-                ))}
+              <ul className="list-disc list-inside space-y-2 text-(--font-color)/90">
+                {plan.tips.map((tip, i) => <li key={i}>{tip}</li>)}
               </ul>
             </div>
-            
             <div className="bg-(--surface-color) p-5 md:p-6 rounded-lg shadow-md">
-              <div className="flex items-center gap-2 mb-4">
-                <Sparkles className="text-(--accent-color)" size={20} />
-                <h3 className="text-lg md:text-xl font-semibold text-(--font-color)">
-                  Motivation
-                </h3>
+              <div className="flex items-center justify-between mb-4">
+                <div className="flex items-center gap-2">
+                  <Sparkles className="text-(--accent-color)" size={20} />
+                  <h3 className="text-lg md:text-xl font-semibold text-(--font-color)">
+                    Motivation
+                  </h3>
+                </div>
+                {/* 5. ADDED Per-Section Play Button */}
+                <button
+                  onClick={() => playAudio(plan.motivation, 'motivation')}
+                  className="p-2 rounded-full hover:bg-(--background-color)"
+                >
+                  {speakingItem === 'motivation' ? (
+                    <StopCircle className="text-red-500" size={20} />
+                  ) : (
+                    <Play className="text-(--accent-color)" size={20} />
+                  )}
+                </button>
               </div>
-              <p className="text-sm md:text-base text-(--font-color)/80 italic border-l-2 border-(--accent-color) pl-4">
-                {plan.motivation}
-              </p>
+              <blockquote className="text-base md:text-lg italic text-(--font-color)/90 border-l-4 border-(--accent-color) pl-4">
+                "{plan.motivation}"
+              </blockquote>
             </div>
           </div>
         )}
