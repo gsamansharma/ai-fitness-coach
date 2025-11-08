@@ -9,5 +9,4 @@ export type Plan = {
     meals: { breakfast: string; lunch: string; dinner: string; snacks: string };
   }[];
   tips: string[];
-  motivation: string;
 };

@@ -287,9 +287,6 @@ export default function PlanDisplay({ plan }: { plan: Plan }) {
               <li key={i}>{tip}</li>
             ))}
           </ul>
-          
-          <h2>Motivation</h2>
-          <div className="motivation">{plan.motivation}</div>
         </div>
       </div>
 
