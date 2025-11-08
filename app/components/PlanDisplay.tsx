@@ -1,0 +1,292 @@
+'use client';
+
+import { useState } from 'react';
+import { Loader2, Utensils, Dumbbell, Sparkles, Lightbulb, X, ChevronRight } from 'lucide-react';
+import { Plan } from '@/app/types';
+
+type ActiveTab = 'workout' | 'diet' | 'tips';
+
+export default function PlanDisplay({ plan }: { plan: Plan }) {
+  const [activeTab, setActiveTab] = useState<ActiveTab>('workout');
+  const [selectedImage, setSelectedImage] = useState<string | null>(null);
+  const [isLoadingImage, setIsLoadingImage] = useState(false);
+  const [expandedDay, setExpandedDay] = useState<number | null>(1);
+  const [hoveredItem, setHoveredItem] = useState<string | null>(null);
+
+  const generateImage = async (prompt: string, type: 'exercise' | 'food') => {
+    setIsLoadingImage(true);
+    setSelectedImage(null);
+    const fullPrompt = type === 'exercise'
+      ? `High-quality, professional fitness photo of ${prompt}`
+      : `High-quality, delicious food photography of ${prompt}, top-down view`;
+
+    try {
+      const response = await fetch('/api/generate-image', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ prompt: fullPrompt }),
+      });
+      if (!response.ok) throw new Error('Failed to generate image');
+      const data = await response.json();
+      setSelectedImage(data.imageUrl);
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setIsLoadingImage(false);
+    }
+  };
+
+  const TabButton = ({
+    tabName,
+    icon: Icon,
+    label,
+  }: {
+    tabName: ActiveTab;
+    icon: React.ElementType;
+    label: string;
+  }) => (
+    <button
+      onClick={() => {
+        setActiveTab(tabName);
+        setExpandedDay(1);
+      }}
+      className={`
+        flex items-center gap-1.5 px-3 md:px-4 py-2 md:py-2.5 rounded-lg font-medium transition-all duration-200
+        ${activeTab === tabName
+          ? 'bg-(--accent-color) text-white shadow-lg'
+          : 'bg-(--surface-color) text-(--font-color)/70'
+        }
+      `}
+    >
+      <Icon size={18} />
+      <span className="text-sm md:text-base">{label}</span>
+    </button>
+  );
+
+  return (
+    <div className="max-w-4xl mx-auto mt-8 md:mt-16 px-4 pb-8">
+      {/* Header */}
+      <div className="text-center mb-8 md:mb-12">
+        <h1 className="text-3xl md:text-4xl font-bold text-(--accent-color) mb-2">
+          Your Personalized Plan
+        </h1>
+        <p className="text-sm md:text-base text-(--font-color)/60">
+          7-day customized program
+        </p>
+      </div>
+
+      {/* Tab Navigation */}
+      <div className="flex justify-center gap-2 mb-6 md:mb-10">
+        <TabButton tabName="workout" icon={Dumbbell} label="Workout" />
+        <TabButton tabName="diet" icon={Utensils} label="Diet" />
+        <TabButton tabName="tips" icon={Lightbulb} label="Tips" />
+      </div>
+
+      {/* Content Area */}
+      <div className="animate-fade-in">
+        {/* WORKOUT PLAN */}
+        {activeTab === 'workout' && (
+          <div className="space-y-3">
+            {plan.workoutPlan.map((day) => (
+              <div 
+                key={day.day} 
+                className="bg-(--surface-color) rounded-lg shadow-md overflow-hidden"
+              >
+                <button
+                  onClick={() => setExpandedDay(expandedDay === day.day ? null : day.day)}
+                  className="w-full p-4 flex items-center justify-between"
+                >
+                  <div className="flex items-center gap-3">
+                    <div className="flex items-center justify-center w-8 h-8 md:w-10 md:h-10 rounded-full bg-(--accent-color) text-white text-sm md:text-base font-semibold">
+                      {day.day}
+                    </div>
+                    <div className="text-left">
+                      <h4 className="text-base md:text-lg font-semibold text-(--font-color)">
+                        {day.dayTitle}
+                      </h4>
+                      <p className="text-xs md:text-sm text-(--font-color)/50">
+                        {day.exercises.length} {day.exercises.length === 1 ? 'exercise' : 'exercises'}
+                      </p>
+                    </div>
+                  </div>
+                  <ChevronRight 
+                    className={`text-(--font-color)/40 transition-transform ${
+                      expandedDay === day.day ? 'rotate-90' : ''
+                    }`} 
+                    size={20} 
+                  />
+                </button>
+                
+                {expandedDay === day.day && (
+                  <div className="px-4 pb-4 animate-expand">
+                    {day.exercises.length === 0 || day.dayTitle.toLowerCase().includes('rest') ? (
+                      <div className="py-6 text-center">
+                        <p className="text-base text-(--font-color)/60">Rest & Recovery</p>
+                      </div>
+                    ) : (
+                      <div className="space-y-2">
+                        {day.exercises.map((ex, i) => (
+                          <div
+                            key={i}
+                            className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-2 p-3 rounded-lg bg-(--background-color)/50"
+                          >
+                            <button
+                              onClick={() => generateImage(ex.name, 'exercise')}
+                              className="text-left text-sm md:text-base text-(--font-color) active:text-(--accent-color)"
+                            >
+                              {ex.name}
+                            </button>
+                            <div className="text-xs md:text-sm text-(--font-color)/60 flex items-center gap-2">
+                              {ex.sets && <span>{ex.sets} sets</span>}
+                              {ex.reps && <span>× {ex.reps}</span>}
+                              {ex.duration && <span>{ex.duration}</span>}
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
+        )}
+
+        {/* DIET PLAN */}
+        {activeTab === 'diet' && (
+          <div className="space-y-3">
+            {plan.dietPlan.map((day) => (
+              <div 
+                key={day.day} 
+                className="bg-(--surface-color) rounded-lg shadow-md overflow-hidden"
+              >
+                <button
+                  onClick={() => setExpandedDay(expandedDay === day.day ? null : day.day)}
+                  className="w-full p-4 flex items-center justify-between"
+                >
+                  <div className="flex items-center gap-3">
+                    <div className="flex items-center justify-center w-8 h-8 md:w-10 md:h-10 rounded-full bg-(--accent-color) text-white text-sm md:text-base font-semibold">
+                      {day.day}
+                    </div>
+                    <div className="text-left">
+                      <h4 className="text-base md:text-lg font-semibold text-(--font-color)">
+                        Day {day.day} Meals
+                      </h4>
+                      <p className="text-xs md:text-sm text-(--font-color)/50">
+                        4 meals
+                      </p>
+                    </div>
+                  </div>
+                  <ChevronRight 
+                    className={`text-(--font-color)/40 transition-transform ${
+                      expandedDay === day.day ? 'rotate-90' : ''
+                    }`} 
+                    size={20} 
+                  />
+                </button>
+                
+                {expandedDay === day.day && (
+                  <div className="px-4 pb-4 animate-expand">
+                    <div className="space-y-2">
+                      {Object.entries(day.meals).map(([mealType, meal]) => (
+                        <div
+                          key={mealType}
+                          className="p-3 rounded-lg bg-(--background-color)/50"
+                        >
+                          <span className="block text-xs text-(--font-color)/50 uppercase mb-1">
+                            {mealType}
+                          </span>
+                          <button
+                            onClick={() => generateImage(meal, 'food')}
+                            className="text-left text-sm md:text-base text-(--font-color) active:text-(--accent-color) w-full"
+                          >
+                            {meal}
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
+        )}
+
+        {/* TIPS & MOTIVATION */}
+        {activeTab === 'tips' && (
+          <div className="space-y-4">
+            <div className="bg-(--surface-color) p-5 md:p-6 rounded-lg shadow-md">
+              <div className="flex items-center gap-2 mb-4">
+                <Lightbulb className="text-(--accent-color)" size={20} />
+                <h3 className="text-lg md:text-xl font-semibold text-(--font-color)">
+                  Lifestyle Tips
+                </h3>
+              </div>
+              <ul className="space-y-2">
+                {plan.tips.map((tip, i) => (
+                  <li key={i} className="flex items-start gap-2 text-sm md:text-base text-(--font-color)/80">
+                    <span className="text-(--accent-color) mt-1">•</span>
+                    <span>{tip}</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+            
+            <div className="bg-(--surface-color) p-5 md:p-6 rounded-lg shadow-md">
+              <div className="flex items-center gap-2 mb-4">
+                <Sparkles className="text-(--accent-color)" size={20} />
+                <h3 className="text-lg md:text-xl font-semibold text-(--font-color)">
+                  Motivation
+                </h3>
+              </div>
+              <p className="text-sm md:text-base text-(--font-color)/80 italic border-l-2 border-(--accent-color) pl-4">
+                {plan.motivation}
+              </p>
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* Image Modal */}
+      {isLoadingImage && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50">
+          <Loader2 className="h-12 w-12 text-white animate-spin" />
+        </div>
+      )}
+      
+      {selectedImage && (
+        <div 
+          className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-50 p-4"
+          onClick={() => setSelectedImage(null)}
+        >
+          <button 
+            className="absolute top-4 right-4 text-white/70 hover:text-white bg-black/30 p-2 rounded-full"
+            onClick={() => setSelectedImage(null)}
+          >
+            <X size={24} />
+          </button>
+          <img
+            src={selectedImage}
+            alt="Generated visual"
+            className="max-w-full max-h-[85vh] object-contain rounded-lg shadow-2xl"
+            onClick={(e) => e.stopPropagation()}
+          />
+        </div>
+      )}
+      
+      <style jsx>{`
+        @keyframes fade-in {
+          from { opacity: 0; transform: translateY(10px); }
+          to { opacity: 1; transform: translateY(0); }
+        }
+        @keyframes expand {
+          from { opacity: 0; max-height: 0; }
+          to { opacity: 1; max-height: 2000px; }
+        }
+        
+        .animate-fade-in { animation: fade-in 0.3s ease-out; }
+        .animate-expand { animation: expand 0.3s ease-out; }
+      `}</style>
+    </div>
+  );
+}
