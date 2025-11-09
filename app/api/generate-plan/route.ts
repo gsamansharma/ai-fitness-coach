@@ -100,7 +100,7 @@ function buildPrompt(data: UserProfileData): string {
 
     **Instructions:**
     1.  **Workout Plan:** Create a 7-day schedule. Tailor exercises to location and fitness level. Include rest days.
-    2.  **Diet Plan:** Create a 7-day meal plan. Align with dietary preference and fitness goal.
+    2.  **Diet Plan:** Create a 7-day meal plan. Align with dietary preference and fitness goal, using only ingredients that are broadly acceptable across diverse cultures and avoiding items that are commonly sensitive or restricted.
     3.  **Tips:** Provide 3-5 lifestyle tips.
     4.  Return the plan in the required structured JSON format.
     `;
