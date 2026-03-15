@@ -12,8 +12,8 @@ export async function POST(request: Request) {
     }
 
     const response = await groq.audio.speech.create({
-      model: "playai-tts", 
-      voice: "Aaliyah-PlayAI", 
+      model: "canopylabs/orpheus-v1-english", 
+      voice: "troy", 
       response_format: "wav", 
       input: text,
     });
